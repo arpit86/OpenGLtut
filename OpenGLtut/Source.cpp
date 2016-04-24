@@ -7,6 +7,127 @@
 #include<iostream>
 #include<string>
 
+#ifndef SHADER_H
+#define SHADER_H
+
+#include <string>
+#include <fstream>
+#include <sstream>
+#include <iostream>
+
+#include <GL\glew.h>
+
+class Shader
+{
+public:
+	//The program id
+	GLuint Program;
+	//constructor reads and builds the shader. needs file paths of the source code that we can store on disk as simple text files.
+	Shader(const GLchar* vertexPath, const GLchar* fragmentPath)
+	{
+		std::string vertexCode;
+		std::string fragmentCode;
+		std::ifstream vShaderFile;
+		std::ifstream fShaderFile;
+		//ensure ifstream objects can throw exceptions:
+		vShaderFile.exceptions(std::ifstream::badbit);
+		fShaderFile.exceptions(std::ifstream::badbit);
+		try
+		{
+			//open files
+			vShaderFile.open(vertexPath);
+			fShaderFile.open(fragmentPath);
+			std::stringstream vShaderStream, fShaderStream;
+			//read files's buffer content into streams
+			vShaderStream << vShaderFile.rdbuf();
+			fShaderStream << fShaderFile.rdbuf();
+			//close file handlers
+			vShaderFile.close();
+			fShaderFile.close();
+			//convert stream into GLchar array
+			vertexCode = vShaderStream.str();
+			fragmentCode = fShaderStream.str();
+		}
+		catch (std::ifstream::failure e)
+		{
+			std::cout << "ERROR::SHADER::FILE_NOT_SUCCESSFULLY_READ" << std::endl;
+		}
+		const GLchar* vShaderCode = vertexCode.c_str();
+		const GLchar* fShaderCode = fragmentCode.c_str();
+		//vertex shader can also be stored in a string and later compiled at run time
+		//shaders always begin with a version declaration
+		//vertex shader input is called as vertex attribute
+		//HW limits the number of VAs we can declare. GLSL guarantees 16 4-component wise
+		//below is 1 way to write a shader but there is a better way after that
+		//const GLchar *vertexShaderSource = "#version 330 core\n layout(location = 0) in vec3 position;\n void main()\n { gl_Position = vec4(position.x, position.y, position.z, 1.0);	}";
+		//Now since we have more data to pass to vertex shader, we have to update our shader code.
+		//const GLchar *vertexShaderSource = "#version 330 core\n layout(location = 0) in vec3 position;\n layout(location = 1) in vec3 color;\n out vec3 ourColor;\n void main()\n { gl_Position = vec4(position, 1.0);	\n ourColor = color;}";
+		//const GLchar* fragmentShaderSource = "#version 330 core\n in vec3 ourColor;\n out vec4 color;\n void main()\n { color = vec4(ourColor, 1.0f); }";
+
+		//2. Compile shaders
+		GLuint vertexShader, fragmentShader;
+		//create a variable to store the result of compilation
+		GLint success;
+		//create a storage container for error message (if any)
+		GLchar infoLog[512];
+		//create vertex and fragment shaders object referenced by an ID
+		vertexShader = glCreateShader(GL_VERTEX_SHADER);
+		fragmentShader = glCreateShader(GL_FRAGMENT_SHADER);
+		//bind the shader source to the vertex shader object. 2nd parameter is the number of strings we want to pass.
+		glShaderSource(vertexShader, 1, &vShaderCode, NULL);
+		glCompileShader(vertexShader);
+		//if we want to check the result of compilation, we can do it this way		
+		//check if compilation was successful
+		glGetShaderiv(vertexShader, GL_COMPILE_STATUS, &success);
+		//if compilation failed, get the error message and print it
+		if (!success)
+		{
+			glGetShaderInfoLog(vertexShader, 512, NULL, infoLog);
+			std::cout << "EROR::SHADER::VERTEX::COMPILATION_FAILED\n" << infoLog << std::endl;
+		}
+		//repeat the same steps for fragment shader
+		//The output of vertex shader should have the same name and type as the input of fragment shader so that they can be linked together.
+		//below line is an example of passing data from vertex shader to fragment shader.
+		//const GLchar* fragmentShaderSource = "#version 330 core\n in vec4 vertexColor;\n out vec4 color;\n void main()\n { color = vertexColor; }";
+		//another way to pass data from application to the shader. Uniforms are different from vertex attributes'
+		//uniforms are global. it is unique per SPO and can be accessed from any shader until its updated
+		//Notice how instead of taking color value from the output of vertex shader we are taking it from a uniform
+		//since we are not using the uniform in VS there is no need to define it there. 
+		glShaderSource(fragmentShader, 1, &fShaderCode, NULL);
+		glCompileShader(fragmentShader);
+		glGetShaderiv(fragmentShader, GL_COMPILE_STATUS, &success);
+		if (!success)
+		{
+			glGetShaderInfoLog(fragmentShader, 512, NULL, infoLog);
+			std::cout << "ERROR::SHADER::FRAGMENT::COMPILATION_FAILED\n" << infoLog << std::endl;
+		}
+		//Shader program object (SPO) is the final linked version of multiple shaders combined.
+		//to use the previously compiled shaders we have to link them to a SPO and activate the SPO
+		this->Program = glCreateProgram();
+		//next we need to attach both the compiled shaders to the SPO
+		glAttachShader(this->Program, vertexShader);
+		glAttachShader(this->Program, fragmentShader);
+		//finally link the shaders together. The output of one shader will the input of next
+		glLinkProgram(this->Program);
+		//get the status of linking. notice the differences
+		glGetProgramiv(this->Program, GL_LINK_STATUS, &success);
+		if (!success)
+		{
+			glGetProgramInfoLog(this->Program, 512, NULL, infoLog);
+			std::cout << "ERROR::SHADER::PROGRAM::LINKING_FAILED\n" << infoLog << std::endl;
+		}
+		//we can now delete the individual VS and FS because they are linked into the SPO
+		glDeleteShader(vertexShader);
+		glDeleteShader(fragmentShader);
+	};
+	//use the program
+	void Use() {
+		glUseProgram(this->Program);
+	};
+};
+
+#endif // SHADER_H
+
 void key_callback(GLFWwindow* window, int key, int scancode, int action, int mode);
 
 int main()
@@ -99,80 +220,12 @@ int main()
 	glEnableVertexAttribArray(1);
 	//unbind the VAO. all statements between bind and unbind are now stored in the VAO.
 	glBindVertexArray(0);
-
-	//vertex shader is stored in a string and later compiled at run time
-	//shaders always begin with a version declaration
-	//vertex shader input is called as vertex attribute
-	//HW limits the number of VAs we can declare. GLSL guarantees 16 4-component wise
-	//below is 1 way to write a shader but there is a better way after that
-	//const GLchar *vertexShaderSource = "#version 330 core\n layout(location = 0) in vec3 position;\n void main()\n { gl_Position = vec4(position.x, position.y, position.z, 1.0);	}";
-	//Now since we have more data to pass to vertex shader, we have to update our shader code.
-	const GLchar *vertexShaderSource = "#version 330 core\n layout(location = 0) in vec3 position;\n layout(location = 1) in vec3 color;\n out vec3 ourColor;\n void main()\n { gl_Position = vec4(position, 1.0);	\n ourColor = color;}";
 	//below 3 lines are optional and used to check how many VAs are supported by HW
 	GLint nrAttributes;
 	glGetIntegerv(GL_MAX_VERTEX_ATTRIBS, &nrAttributes);
 	std::cout << "Maximum number of vertex attributes supported: " << nrAttributes << std::endl;
-	GLuint vertexShader;
-	//create a vertex shader object referenced by an ID
-	vertexShader = glCreateShader(GL_VERTEX_SHADER);
-	//bind the shader source to the vertex shader object. 2nd parameter is the number of strings we want to pass.
-	glShaderSource(vertexShader, 1, &vertexShaderSource, NULL);
-	glCompileShader(vertexShader);
-	//if we want to check the result of compilation, we can do it this way
-	//create a variable to store the result of compilation
-	GLint success;
-	//create a storage container for error message (if any)
-	GLchar infoLog[512];
-	//check if compilation was successful
-	glGetShaderiv(vertexShader, GL_COMPILE_STATUS, &success);
-	//if compilation failed, get the error message and print it
-	if (!success)
-	{
-		glGetShaderInfoLog(vertexShader, 512, NULL, infoLog);
-		std::cout << "EROR::SHADER::VERTEX::COMPILATION_FAILED\n" << infoLog << std::endl;
-	}
-
-	//repeat the same steps for fragment shader
-	//The output of vertex shader should have the same name and type as the input of fragment shader so that they can be linked together.
-	//below line is an example of passing data from vertex shader to fragment shader.
-	//const GLchar* fragmentShaderSource = "#version 330 core\n in vec4 vertexColor;\n out vec4 color;\n void main()\n { color = vertexColor; }";
-	//another way to pass data from application to the shader. Uniforms are different from vertex attributes'
-	//uniforms are global. it is unique per SPO and can be accessed from any shader until its updated
-	//Notice how instead of taking color value from the output of vertex shader we are taking it from a uniform
-	//since we are not using the uniform in VS there is no need to define it there. 
-	const GLchar* fragmentShaderSource = "#version 330 core\n in vec3 ourColor;\n out vec4 color;\n void main()\n { color = vec4(ourColor, 1.0f); }";
-	GLuint fragmentShader;
-	fragmentShader = glCreateShader(GL_FRAGMENT_SHADER);
-	glShaderSource(fragmentShader, 1, &fragmentShaderSource, NULL);
-	glCompileShader(fragmentShader);
-	glGetShaderiv(fragmentShader, GL_COMPILE_STATUS, &success);
-	if (!success)
-	{
-		glGetShaderInfoLog(fragmentShader, 512, NULL, infoLog);
-		std::cout << "ERROR::SHADER::FRAGMENT::COMPILATION_FAILED\n" << infoLog << std::endl;
-	}
-
-	//Shader program object (SPO) is the final linked version of multiple shaders combined.
-	//to use the previously compiled shaders we have to link them to a SPO and activate the SPO
-	GLuint shaderProgram;
-	shaderProgram = glCreateProgram();
-	//next we need to attach both the compiled shaders to the SPO
-	glAttachShader(shaderProgram, vertexShader);
-	glAttachShader(shaderProgram, fragmentShader);
-	//finally link the shaders together. The output of one shader will the input of next
-	glLinkProgram(shaderProgram);
-	//get the status of linking. notice the differences
-	glGetProgramiv(shaderProgram, GL_LINK_STATUS, &success);
-	if (!success)
-	{
-		glGetProgramInfoLog(shaderProgram, 512, NULL, infoLog);
-		std::cout << "ERROR::SHADER::PROGRAM::LINKING_FAILED\n" << infoLog << std::endl;
-	}
-
-	//we can now delete the individual VS and FS because they are linked into the SPO
-	glDeleteShader(vertexShader);
-	glDeleteShader(fragmentShader);
-
+	
+	Shader ourShader("shader.vs","shader.frag");
 	glViewport(0, 0, 800, 600);
 	glfwSetKeyCallback(window, key_callback);
 	//set opengl state to draw in wireframe mode. any subsequent draw calls will be affected.
@@ -188,14 +241,14 @@ int main()
 		//activate and use the SPO
 		//glClear needs the bit which specifies the buffer we want to clear
 		glClear(GL_COLOR_BUFFER_BIT);
-		glUseProgram(shaderProgram);
+		ourShader.Use();
 		//Here we will update the uniform color in fragment shader to gradually change color over time
 		//first we retrieve the running time in seconds
 		GLfloat timeValue = glfwGetTime();
 		//then we vary the color in the range from 0.0 - 1.0 by using the sin function
 		GLfloat greenValue = (sin(timeValue) / 2) + 0.5;
 		//next we query for the location of uniform variable ourColor in fragment shader
-		GLint vertexColorLocation = glGetUniformLocation(shaderProgram, "ourColor");
+		GLint vertexColorLocation = glGetUniformLocation(ourShader.Program, "ourColor");
 		//lastly we set the uniform value to the varying green color. before updating the uniform the SPO should be in use
 		//notice that we are using a single color for all fragments in 1 frame because all fragments in the FS use the same color.
 		//what if we want different colors for different fragments? calculate new color value in fragment shader instead of gameloop 

@@ -44,10 +44,12 @@ int main()
 	-0.5f, 0.5f, 0.0f	//top left
 	};*/
 	//creating a new array which also holds the color value for each vertex along with its position
+	//adding color data as well. 
 	GLfloat vertices[] = {
-		0.5f, -0.5f, 0.0f,	//top right
-		-0.5f, -0.5f, 0.0f,	//bottom right
-		-0.5f, -0.5f, 0.0f,	//bottom left
+		//Positions		  //color
+		0.5f,-0.5f, 0.0f, 1.0f, 0.0f, 0.0f,	//top right
+	   -0.5f,-0.5f, 0.0f, 0.0f, 1.0f, 0.0f,	//bottom right
+		0.0f, 0.5f, 0.0f, 0.0f, 0.0f, 1.0f	//bottom left
 	};
 	//In this array we specify the order in which we want to draw the 2 triangles. This way we need not store the 2 common vertices for our 2 triangles
 	GLuint indices[] = {
@@ -87,11 +89,14 @@ int main()
 	//2nd argument specifies the size of the VA. it is vec3 so we specify 3
 	//3rd specifies the type of data which is float. each value in vector is a float
 	//4th specifies if we want to normalize to NDC. we set to false because we are already giving normalized values
-	//5th argument is the stride between consecutive VA sets.
+	//5th argument is the stride between consecutive VA sets. After we added the color data, this changes. Each new vertex start after 6th byte.
 	//6th is the offset of where the position data begins in the buffer. it is 0 in this case.
-	glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 3 * sizeof(GL_FLOAT), (void*)0);
+	glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 6 * sizeof(GL_FLOAT), (GLvoid*)0);
 	//we also have to enable the VA giving the location of the VA as argument
 	glEnableVertexAttribArray(0);
+	//color attributes
+	glVertexAttribPointer(1, 3, GL_FLOAT, GL_FALSE, 6 * sizeof(GL_FLOAT), (GLvoid*)(3 * sizeof(GL_FLOAT)));
+	glEnableVertexAttribArray(1);
 	//unbind the VAO. all statements between bind and unbind are now stored in the VAO.
 	glBindVertexArray(0);
 
@@ -101,7 +106,8 @@ int main()
 	//HW limits the number of VAs we can declare. GLSL guarantees 16 4-component wise
 	//below is 1 way to write a shader but there is a better way after that
 	//const GLchar *vertexShaderSource = "#version 330 core\n layout(location = 0) in vec3 position;\n void main()\n { gl_Position = vec4(position.x, position.y, position.z, 1.0);	}";
-	const GLchar *vertexShaderSource = "#version 330 core\n layout(location = 0) in vec3 position;\n out vec4 vertexColor;\n void main()\n { gl_Position = vec4(position, 1.0);	\n vertexColor = vec4(0.5f, 0.0f, 0.0f, 1.0f);}";
+	//Now since we have more data to pass to vertex shader, we have to update our shader code.
+	const GLchar *vertexShaderSource = "#version 330 core\n layout(location = 0) in vec3 position;\n layout(location = 1) in vec3 color;\n out vec3 ourColor;\n void main()\n { gl_Position = vec4(position, 1.0);	\n ourColor = color;}";
 	//below 3 lines are optional and used to check how many VAs are supported by HW
 	GLint nrAttributes;
 	glGetIntegerv(GL_MAX_VERTEX_ATTRIBS, &nrAttributes);
@@ -134,7 +140,7 @@ int main()
 	//uniforms are global. it is unique per SPO and can be accessed from any shader until its updated
 	//Notice how instead of taking color value from the output of vertex shader we are taking it from a uniform
 	//since we are not using the uniform in VS there is no need to define it there. 
-	const GLchar* fragmentShaderSource = "#version 330 core\n out vec4 color;\n uniform vec4 ourColor;\n void main()\n { color = ourColor; }";
+	const GLchar* fragmentShaderSource = "#version 330 core\n in vec3 ourColor;\n out vec4 color;\n void main()\n { color = vec4(ourColor, 1.0f); }";
 	GLuint fragmentShader;
 	fragmentShader = glCreateShader(GL_FRAGMENT_SHADER);
 	glShaderSource(fragmentShader, 1, &fragmentShaderSource, NULL);
@@ -197,10 +203,10 @@ int main()
 		//bind the vertex array we want to use
 		glBindVertexArray(VAO);
 		//draw primitives using currently active shader. 2nd argument specifies the starting index of the vertex array. last argument tells how many vertices we want to draw.
-		//glDrawArrays(GL_TRIANGLES, 0, 3);
+		glDrawArrays(GL_TRIANGLES, 0, 3);
 		//since we are now using elements to specify the order of drawing we use a differnt function to draw.
 		//2nd argument specifies the number of vertices we want to draw. 3rd argument is the type of indices which is int. 4th is the offset in the EBO
-		glDrawElements(GL_TRIANGLES, 6, GL_UNSIGNED_INT, 0);
+		//glDrawElements(GL_TRIANGLES, 6, GL_UNSIGNED_INT, 0);
 		//swap the current buffer with the finsih rendered new buffer
 		glfwSwapBuffers(window);
 	}

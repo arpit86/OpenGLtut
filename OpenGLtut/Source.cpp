@@ -177,6 +177,25 @@ int main()
 		0, 1, 3,	//First triangle
 		1, 2, 3		//second triangle
 	};
+	//texture coordinates for the 3 vertices of the triangle. example: bottom left vertex maps to the bottom left corner of the texture. these co-ordinates are also called s and t coord
+	//a 2D texture image has co-ordinates in the range (0,0) to (1,1)
+	//fragment interpolation then interpolates the coordinates of all the generated fragments.
+	//retreiving the texture value from the texture using the texture coordinates is called sampling
+	GLfloat texCoords[] = {
+	0.0f, 0.0f, //bottom left of the triangle
+	1.0f, 0.0f, //bottom right of the triangle
+	0.5f, 1.0f  //top center of the triangle
+	};
+	//Texture wrapping
+	//There are many to specify what to do when s and t values specified to sample the texture are outside the range.
+	//default is to repeat the texture. there are other modes like clamp to edge, clamp to border and mirrored repeat.
+	//below is an example of clamp to border where for values outside the range, a default border color is used.
+	//this function is used to specify which type of texture wrap we want to use and for which axis. we can specify different wrap for different axis.
+	//the 1st argument is the texture target. since we are using 2D texture, it is 2D. 2nd is the type of texture option for a axis. this is wrap. 3rd option is the type of wrap.
+	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_BORDER);
+	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_BORDER);
+	float borderColor[] = { 1.0f,1.0f,0.0f,1.0f };
+	glTexParameterfv(GL_TEXTURE_2D, GL_TEXTURE_BORDER_COLOR, borderColor);
 	//vertex buffer object id
 	GLuint VBO;
 	//vertex array object id (explained later)

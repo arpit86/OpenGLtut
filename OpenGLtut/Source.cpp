@@ -196,6 +196,18 @@ int main()
 	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_BORDER);
 	float borderColor[] = { 1.0f,1.0f,0.0f,1.0f };
 	glTexParameterfv(GL_TEXTURE_2D, GL_TEXTURE_BORDER_COLOR, borderColor);
+	//texture filtering
+	//texture coordinates are always between (0,0) and (1,1) but a texture image can be of any resolution.
+	//if our object has the same resolution as the texture then OpenGL will map a unique value (texel) for each s and t coordinate
+	//however if the object has a different resolution than the texture image then OpenGL has to somehow figure out the best texel for a given s and t value
+	//if object has a lower resolution (texture has higher res) then the texture needs to be scaled down to object's resolution. This is also called minification
+	//if object has higher resolution than texture then texture needs to be scaled up. This is also called as magnification.
+	//for minification we can for example simply select a texel whose center is closest to (s,t). This is called nearest neighbor filtering
+	//for magnification we can for example take an interpolated color of the (s,t) coordinates neighbors. closer the distance, higher the color contribution. This technique is called bilinear filtering.
+	//nearest neighbor results in block patterns and liner filtering gives smoother results for magnification cases.
+	//we have to specify filtering operations for both magnification and minification
+	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
+	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
 	//vertex buffer object id
 	GLuint VBO;
 	//vertex array object id (explained later)

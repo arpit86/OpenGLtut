@@ -206,7 +206,22 @@ int main()
 	//for magnification we can for example take an interpolated color of the (s,t) coordinates neighbors. closer the distance, higher the color contribution. This technique is called bilinear filtering.
 	//nearest neighbor results in block patterns and liner filtering gives smoother results for magnification cases.
 	//we have to specify filtering operations for both magnification and minification
-	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
+	//glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
+	//glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+	//mipmaps
+	//imagine this. we have a room full of objects using the same texture.
+	//some objects are closer to the viewer and some are far away. All the objects use a single high resolution texture.
+	//assume that for objects which are closer to the viewer, the fragments s and t value have a 1:1 mapping to the texel on texture so opengl can easily sample the color.
+	//however for objects that are far away from the viewer, a single fragment will span many texels and opengl will have a hard time figuring out which color to sample.
+	//for the above case, minification will solve the problem to some extent but if the texture is scaled down significantly then there will be some artifacts
+	//to solve this problem, openGL uses mipmaps. mipmaps are collection of texture images where each subsequent image is half the size of the previous image.
+	// the idea is that when a certain distance threshold is reached from the viewer to the object, opengl uses a different scaled down texture image which is half the size of the previous image.
+	//mipmaps are good for improving performance as well. Even in case of mipmaps there can be certain artifacts between 2 levels of mipmaps like sharp edges. Just like texture filtering used previously we can use
+	//texture filtering BETWEEN mipmap levels to smooth out the edges.
+	//so instead of using the above function to set the mag and min filter we can use below function to specify filter for both textture sampling and mipmap level sampling
+	//we are setting the minification filter as linear filtering for texture sampling and linear interpolation between two closest mipmap levels.
+	//keep in mind that mipmaps are only used for minification filter because we need it only when we downscale textures. 
+	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR_MIPMAP_LINEAR);
 	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
 	//vertex buffer object id
 	GLuint VBO;

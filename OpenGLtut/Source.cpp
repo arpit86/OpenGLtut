@@ -1,6 +1,8 @@
 //GLEW manages function pointers to OpenGL.
 #define GLEW_STATIC
 #include<GL\glew.h>
+//Adding SOIL for loading textures in OpenGL
+#include<SOIL.h>
 //GLFW provides windowing and user input functions.
 #include<GLFW\glfw3.h>
 //need to add this otherwise cout is not found in std namespace
@@ -223,6 +225,11 @@ int main()
 	//keep in mind that mipmaps are only used for minification filter because we need it only when we downscale textures. 
 	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR_MIPMAP_LINEAR);
 	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+	//loading the wooden container texture. We can write our own image loader functions but we are going to use a library for loading textures in OpenGL called SOIL
+	int width, height;
+	//1st argument is the location of the image. 2nd and 3rd will be initialized by SOIL from the image's data. 4th is the numbers of channels image has. we'll leave it at 0.
+	//5th arg tells how to load the image. since we just want to RGB values we set to RGB.
+	unsigned char* image = SOIL_load_image("container.jpg", &width, &height, 0, SOIL_LOAD_RGB);
 	//vertex buffer object id
 	GLuint VBO;
 	//vertex array object id (explained later)

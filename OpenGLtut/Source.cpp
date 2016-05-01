@@ -230,6 +230,22 @@ int main()
 	//1st argument is the location of the image. 2nd and 3rd will be initialized by SOIL from the image's data. 4th is the numbers of channels image has. we'll leave it at 0.
 	//5th arg tells how to load the image. since we just want to RGB values we set to RGB.
 	unsigned char* image = SOIL_load_image("container.jpg", &width, &height, 0, SOIL_LOAD_RGB);
+	//next we are going to generate the texture. store the texture id in a varibale. function takes as input the number of textures we want to generate
+	GLuint texture;
+	glGenTextures(1, &texture);
+	//Now we need to bind this texture so any texture commands will configure this texture. we are binding it to the 2D texture target
+	glBindTexture(GL_TEXTURE_2D, texture);
+	//now that the texture is bound we can start generating the texture
+	//1st arg specifies the texture target. 1D and 3D texture targets are not affected. 2nd arg specifies the mipmap level we want the texture generated for. we set it to 0 or base level.
+	//3rd ar specifies the format we want to store the texture in. 4th and 5th tells the width and height we want to use for our texture. next arg should always be 0.
+	//7th and 8th ar specifies the format and data type of the source image. last is actual image data.
+	glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB, width, height, 0, GL_RGB, GL_UNSIGNED_BYTE, image);
+	//now our container texture is attached to the currently bound 2D texture object but it only has the base level of the image loaded.
+	//if we want to use mipmaps we have to manually specify the image for each mipmap level by incrementing the level in above function or we can use...
+	glGenerateMipmap(GL_TEXTURE_2D);
+	//now it is a good practice to free the image memory and unbind the texture object.
+	SOIL_free_image_data(image);
+	glBindTexture(GL_TEXTURE_2D, 0);
 	//vertex buffer object id
 	GLuint VBO;
 	//vertex array object id (explained later)

@@ -163,10 +163,10 @@ int main()
 	//consolidating all data in a single array
 	GLfloat vertices[] = {
 	//position			//color				//texture co-ords
-	0.5f, 0.5f, 0.0f,	1.0f, 0.0f, 0.0f,	1.0f, 1.0f,	//top right
-	0.5f, -0.5f, 0.0f,	0.0f, 1.0f, 0.0f,	1.0f, 0.0f,	//bottom right
-	-0.5f, -0.5f, 0.0f,	0.0f, 0.0f, 1.0f,	0.0f, 0.0f,	//bottom left
-	-0.5f, 0.5f, 0.0f,	1.0f, 1.0f, 0.0f,	0.0f, 1.0f	//top left
+	0.5f, 0.5f, 0.0f,	1.0f, 0.0f, 0.0f,	1.0f, 0.0f,	//top right
+	0.5f, -0.5f, 0.0f,	0.0f, 1.0f, 0.0f,	1.0f, 1.0f,	//bottom right
+	-0.5f, -0.5f, 0.0f,	0.0f, 0.0f, 1.0f,	0.0f, 1.0f,	//bottom left
+	-0.5f, 0.5f, 0.0f,	1.0f, 1.0f, 0.0f,	0.0f, 0.0f	//top left
 	};
 	//creating a new array which also holds the color value for each vertex along with its position
 	//adding color data as well. 
@@ -190,6 +190,17 @@ int main()
 	//1.0f, 0.0f, //bottom right of the triangle
 	//0.5f, 1.0f  //top center of the triangle
 	//};
+	
+	//loading the wooden container texture. We can write our own image loader functions but we are going to use a library for loading textures in OpenGL called SOIL
+	int width, height;
+	//1st argument is the location of the image. 2nd and 3rd will be initialized by SOIL from the image's data. 4th is the numbers of channels image has. we'll leave it at 0.
+	//5th arg tells how to load the image. since we just want to RGB values we set to RGB.
+	unsigned char* image = SOIL_load_image("container.jpg", &width, &height, 0, SOIL_LOAD_RGB);
+	//next we are going to generate the texture. store the texture id in a varibale. function takes as input the number of textures we want to generate
+	GLuint texture1;
+	glGenTextures(1, &texture1);
+	//Now we need to bind this texture so any texture commands will configure this texture. we are binding it to the 2D texture target
+	glBindTexture(GL_TEXTURE_2D, texture1);
 	//Texture wrapping
 	//There are many to specify what to do when s and t values specified to sample the texture are outside the range.
 	//default is to repeat the texture. there are other modes like clamp to edge, clamp to border and mirrored repeat.
@@ -227,17 +238,6 @@ int main()
 	//keep in mind that mipmaps are only used for minification filter because we need it only when we downscale textures. 
 	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR_MIPMAP_LINEAR);
 	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
-	//loading the wooden container texture. We can write our own image loader functions but we are going to use a library for loading textures in OpenGL called SOIL
-	int width, height;
-	//1st argument is the location of the image. 2nd and 3rd will be initialized by SOIL from the image's data. 4th is the numbers of channels image has. we'll leave it at 0.
-	//5th arg tells how to load the image. since we just want to RGB values we set to RGB.
-	unsigned char* image = SOIL_load_image("container.jpg", &width, &height, 0, SOIL_LOAD_RGB);
-	//next we are going to generate the texture. store the texture id in a varibale. function takes as input the number of textures we want to generate
-	GLuint texture;
-	glGenTextures(1, &texture);
-	//Now we need to bind this texture so any texture commands will configure this texture. we are binding it to the 2D texture target
-	glBindTexture(GL_TEXTURE_2D, texture);
-	//now that the texture is bound we can start generating the texture
 	//1st arg specifies the texture target. 1D and 3D texture targets are not affected. 2nd arg specifies the mipmap level we want the texture generated for. we set it to 0 or base level.
 	//3rd ar specifies the format we want to store the texture in. 4th and 5th tells the width and height we want to use for our texture. next arg should always be 0.
 	//7th and 8th ar specifies the format and data type of the source image. last is actual image data.
@@ -248,6 +248,23 @@ int main()
 	//now it is a good practice to free the image memory and unbind the texture object.
 	SOIL_free_image_data(image);
 	glBindTexture(GL_TEXTURE_2D, 0);
+	//what if we want to use more than 1 texture in our fragment shader? We use something called as texture units which the location assigned to the texture sampler
+	//when we bind a texture, by default, it is assigned to texture unit 0. we can bind multiple textures each to a differnt texture unit. the number of texture units is HW dependent 
+	//repeating the above steps but for texture2 now
+	image = SOIL_load_image("awesomeface.png", &width, &height, 0, SOIL_LOAD_RGB);
+	GLuint texture2;
+	glGenTextures(1, &texture2);
+	glBindTexture(GL_TEXTURE_2D, texture2);
+	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_BORDER);
+	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_BORDER);
+	glTexParameterfv(GL_TEXTURE_2D, GL_TEXTURE_BORDER_COLOR, borderColor);
+	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR_MIPMAP_LINEAR);
+	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+	glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB, width, height, 0, GL_RGB, GL_UNSIGNED_BYTE, image);
+	glGenerateMipmap(GL_TEXTURE_2D);
+	SOIL_free_image_data(image);
+	glBindTexture(GL_TEXTURE_2D, 0);
+	//now that the texture is bound we can start generating the texture
 	//vertex buffer object id
 	GLuint VBO;
 	//vertex array object id (explained later)
@@ -328,7 +345,16 @@ int main()
 		//what if we want different colors for different fragments? calculate new color value in fragment shader instead of gameloop 
 		glUniform4f(vertexColorLocation, 0.0f, greenValue, 0.0f, 1.0f);
 		//now we also need to bind our texture and it will be automatically assigned to the sampler in the fragment shader
-		glBindTexture(GL_TEXTURE_2D, texture);
+		//since we have 2 textures we have to activate the corresponding TU and specify which uniform sampler in FS corresponds to which TU
+		glActiveTexture(GL_TEXTURE0);
+		glBindTexture(GL_TEXTURE_2D, texture1);
+		//Using below function we can assign a location value to the texture sampler and specify which uniform sampler corresponds to which TU.
+		glUniform1i(glGetUniformLocation(ourShader.Program, "ourTexture1"), 0);
+		//same steps for texture unit 2 now.
+		//assign texture 2 to TU 1.
+		glActiveTexture(GL_TEXTURE1);
+		glBindTexture(GL_TEXTURE_2D, texture2);
+		glUniform1i(glGetUniformLocation(ourShader.Program, "ourTexture2"), 1);
 		//bind the vertex array we want to use
 		glBindVertexArray(VAO);
 		//draw primitives using currently active shader. 2nd argument specifies the starting index of the vertex array. last argument tells how many vertices we want to draw.

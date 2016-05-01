@@ -159,21 +159,23 @@ int main()
 
 	//for the sake of simplicity we are providing values in NDC. real applications wont necessarily have it and we will
 	//need to transform them to NDC in VS.
-	//these are vertices for 4 corners of a rectangle or 2 triangles
-	/*GLfloat vertices[] = {
-	0.5f, 0.5f, 0.0f,	//top right
-	0.5f, -0.5f, 0.0f,	//bottom right
-	-0.5f, -0.5f, 0.0f,	//bottom left
-	-0.5f, 0.5f, 0.0f	//top left
-	};*/
+	//these are vertices/colors and texture co-ordinates for 4 corners of a rectangle or 2 triangles.
+	//consolidating all data in a single array
+	GLfloat vertices[] = {
+	//position			//color				//texture co-ords
+	0.5f, 0.5f, 0.0f,	1.0f, 0.0f, 0.0f,	1.0f, 1.0f,	//top right
+	0.5f, -0.5f, 0.0f,	0.0f, 1.0f, 0.0f,	1.0f, 0.0f,	//bottom right
+	-0.5f, -0.5f, 0.0f,	0.0f, 0.0f, 1.0f,	0.0f, 0.0f,	//bottom left
+	-0.5f, 0.5f, 0.0f,	1.0f, 1.0f, 0.0f,	0.0f, 1.0f	//top left
+	};
 	//creating a new array which also holds the color value for each vertex along with its position
 	//adding color data as well. 
-	GLfloat vertices[] = {
-		//Positions		  //color
-		0.5f,-0.5f, 0.0f, 1.0f, 0.0f, 0.0f,	//top right
-	   -0.5f,-0.5f, 0.0f, 0.0f, 1.0f, 0.0f,	//bottom right
-		0.0f, 0.5f, 0.0f, 0.0f, 0.0f, 1.0f	//bottom left
-	};
+	//GLfloat vertices[] = {
+	//	//Positions		  //color
+	//	0.5f,-0.5f, 0.0f, 1.0f, 0.0f, 0.0f,	//top right
+	//   -0.5f,-0.5f, 0.0f, 0.0f, 1.0f, 0.0f,	//bottom right
+	//	0.0f, 0.5f, 0.0f, 0.0f, 0.0f, 1.0f	//bottom left
+	//};
 	//In this array we specify the order in which we want to draw the 2 triangles. This way we need not store the 2 common vertices for our 2 triangles
 	GLuint indices[] = {
 		0, 1, 3,	//First triangle
@@ -183,11 +185,11 @@ int main()
 	//a 2D texture image has co-ordinates in the range (0,0) to (1,1)
 	//fragment interpolation then interpolates the coordinates of all the generated fragments.
 	//retreiving the texture value from the texture using the texture coordinates is called sampling
-	GLfloat texCoords[] = {
-	0.0f, 0.0f, //bottom left of the triangle
-	1.0f, 0.0f, //bottom right of the triangle
-	0.5f, 1.0f  //top center of the triangle
-	};
+	//GLfloat texCoords[] = {
+	//0.0f, 0.0f, //bottom left of the triangle
+	//1.0f, 0.0f, //bottom right of the triangle
+	//0.5f, 1.0f  //top center of the triangle
+	//};
 	//Texture wrapping
 	//There are many to specify what to do when s and t values specified to sample the texture are outside the range.
 	//default is to repeat the texture. there are other modes like clamp to edge, clamp to border and mirrored repeat.
@@ -279,14 +281,17 @@ int main()
 	//2nd argument specifies the size of the VA. it is vec3 so we specify 3
 	//3rd specifies the type of data which is float. each value in vector is a float
 	//4th specifies if we want to normalize to NDC. we set to false because we are already giving normalized values
-	//5th argument is the stride between consecutive VA sets. After we added the color data, this changes. Each new vertex start after 6th byte.
+	//5th argument is the stride between consecutive VA sets. After we added the color data, this changes. Each new vertex start after 8th byte in consolidated array.
 	//6th is the offset of where the position data begins in the buffer. it is 0 in this case.
-	glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 6 * sizeof(GL_FLOAT), (GLvoid*)0);
+	glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 8 * sizeof(GL_FLOAT), (GLvoid*)0);
 	//we also have to enable the VA giving the location of the VA as argument
 	glEnableVertexAttribArray(0);
 	//color attributes
-	glVertexAttribPointer(1, 3, GL_FLOAT, GL_FALSE, 6 * sizeof(GL_FLOAT), (GLvoid*)(3 * sizeof(GL_FLOAT)));
+	glVertexAttribPointer(1, 3, GL_FLOAT, GL_FALSE, 8 * sizeof(GL_FLOAT), (GLvoid*)(3 * sizeof(GL_FLOAT)));
 	glEnableVertexAttribArray(1);
+	//texture attributes
+	glVertexAttribPointer(2, 2, GL_FLOAT, GL_FALSE, 8 * sizeof(GL_FLOAT), (GLvoid*)(6 * sizeof(GL_FLOAT)));
+	glEnableVertexAttribArray(2);
 	//unbind the VAO. all statements between bind and unbind are now stored in the VAO.
 	glBindVertexArray(0);
 	//below 3 lines are optional and used to check how many VAs are supported by HW
@@ -322,13 +327,15 @@ int main()
 		//notice that we are using a single color for all fragments in 1 frame because all fragments in the FS use the same color.
 		//what if we want different colors for different fragments? calculate new color value in fragment shader instead of gameloop 
 		glUniform4f(vertexColorLocation, 0.0f, greenValue, 0.0f, 1.0f);
+		//now we also need to bind our texture and it will be automatically assigned to the sampler in the fragment shader
+		glBindTexture(GL_TEXTURE_2D, texture);
 		//bind the vertex array we want to use
 		glBindVertexArray(VAO);
 		//draw primitives using currently active shader. 2nd argument specifies the starting index of the vertex array. last argument tells how many vertices we want to draw.
-		glDrawArrays(GL_TRIANGLES, 0, 3);
+		//glDrawArrays(GL_TRIANGLES, 0, 3);
 		//since we are now using elements to specify the order of drawing we use a differnt function to draw.
 		//2nd argument specifies the number of vertices we want to draw. 3rd argument is the type of indices which is int. 4th is the offset in the EBO
-		//glDrawElements(GL_TRIANGLES, 6, GL_UNSIGNED_INT, 0);
+		glDrawElements(GL_TRIANGLES, 6, GL_UNSIGNED_INT, 0);
 		//swap the current buffer with the finsih rendered new buffer
 		glfwSwapBuffers(window);
 	}

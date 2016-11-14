@@ -5,9 +5,6 @@
 #include<SOIL.h>
 //GLFW provides windowing and user input functions.
 #include<GLFW\glfw3.h>
-//need to add this otherwise cout is not found in std namespace
-#include<iostream>
-#include<string>
 
 #ifndef SHADER_H
 #define SHADER_H
@@ -15,9 +12,8 @@
 #include <string>
 #include <fstream>
 #include <sstream>
+//need to add this otherwise cout is not found in std namespace
 #include <iostream>
-
-#include <GL\glew.h>
 
 class Shader
 {
@@ -149,6 +145,7 @@ int main()
 	}
 	glfwMakeContextCurrent(window);
 
+	//setting glewexperimental to true ensures that glew uses more modern techniques for managing OpenGL functionality 
 	glewExperimental = GL_TRUE;
 	//Need to initialize GLEW before calling any openGL functions.
 	if (glewInit() != GLEW_OK)
@@ -202,15 +199,16 @@ int main()
 	//Now we need to bind this texture so any texture commands will configure this texture. we are binding it to the 2D texture target
 	glBindTexture(GL_TEXTURE_2D, texture1);
 	//Texture wrapping
-	//There are many to specify what to do when s and t values specified to sample the texture are outside the range.
+	//There are many ways to specify what to do when s and t values specified to sample the texture are outside the range.
 	//default is to repeat the texture. there are other modes like clamp to edge, clamp to border and mirrored repeat.
 	//below is an example of clamp to border where for values outside the range, a default border color is used.
+	float borderColor[] = { 1.0f, 1.0f, 0.0f, 1.0f };
+	glTexParameterfv(GL_TEXTURE_2D, GL_TEXTURE_BORDER_COLOR, borderColor);
 	//this function is used to specify which type of texture wrap we want to use and for which axis. we can specify different wrap for different axis.
 	//the 1st argument is the texture target. since we are using 2D texture, it is 2D. 2nd is the type of texture option for a axis. this is wrap. 3rd option is the type of wrap.
 	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_BORDER);
 	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_BORDER);
-	float borderColor[] = { 1.0f,1.0f,0.0f,1.0f };
-	glTexParameterfv(GL_TEXTURE_2D, GL_TEXTURE_BORDER_COLOR, borderColor);
+
 	//texture filtering
 	//texture coordinates are always between (0,0) and (1,1) but a texture image can be of any resolution.
 	//if our object has the same resolution as the texture then OpenGL will map a unique value (texel) for each s and t coordinate
@@ -257,7 +255,7 @@ int main()
 	glBindTexture(GL_TEXTURE_2D, texture2);
 	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_BORDER);
 	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_BORDER);
-	glTexParameterfv(GL_TEXTURE_2D, GL_TEXTURE_BORDER_COLOR, borderColor);
+
 	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR_MIPMAP_LINEAR);
 	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
 	glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB, width, height, 0, GL_RGB, GL_UNSIGNED_BYTE, image);
